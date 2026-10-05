@@ -17,29 +17,30 @@ ref. [nanostores/nanostores: A tiny (340 bytes) state manager for React/RN/Preac
 
 ```html
 <script type="module">
+  // ライブラリをES Modulesで読み込んで
   import { createState } from './state.js'
 
+  // createState で値を保持
   const count = createState(0)
 
   function render(value) {
     document.querySelector('#count').textContent = value
   }
-
+　 // subscribe で値を監視（変更されたら render を実行）
   count.subscribe(render)
 
   document.querySelector('#button').onclick = () => {
+    // ボタンを押したら値を変更（値が変わるとrenderが実行されて表示が変わる）
     count.update(count.value + 1)
   }
-
+　 //初期表示用(subscribeしただけではrenderは動かないので最初に一回だけ実行する)
   render(count.value)
 </script>
 ```
 
-npm、bundler、framework は必要ありません。
-
-
 ## 基本的な使い方
 
+値を保持する:
 ```js
 import { createState } from './state.js'
 
@@ -74,8 +75,6 @@ count.subscribe(render)
 count.unsubscribe(render)
 ```
 
----
-
 ## API
 
 公開 API は次の4つだけです。
@@ -88,6 +87,7 @@ state.update(...)
 state.subscribe(listener)
 state.unsubscribe(listener)
 ```
+いずれも操作は明示的に行われるので、ソースコード内での操作が見えやすい、という特徴があります。
 
 ---
 
@@ -104,14 +104,15 @@ console.log(theme.value)
 オブジェクトもそのまま参照できます。
 
 ```js
-const viewport = createState({
+const parameters = createState({
   ra: 0,
   dec: 0,
   radius: 30
 })
 
-console.log(viewport.value.ra)
+console.log(parameters.value.ra)
 ```
+
 
 ---
 
@@ -133,20 +134,28 @@ const theme = createState('auto')
 theme.update('dark')
 ```
 
----
+【注意】
+createStateで生成された値は、直接変更しようとするとエラーになります。  
+以下の操作はできません。値を変更する場合には、必ず `update` を使用します。
+```
+theme = 'dark';
+```
+これは、意図せずに監視対象の値を変更しないための意図な制限です。
+
 
 ### オブジェクトや配列を変更する
 
-関数には、現在の state をコピーした変更可能な値が仮引数として渡されます。仮引数名は任意です。以下では `draft` という名前を使っています。
+関数には、現在の state をコピーした変更可能な値が仮引数として渡されます。  
+仮引数名は任意です。以下では `draft` という名前を使っています。
 
 ```js
-const viewport = createState({
+const parameters = createState({
   ra: 0,
   dec: 0,
   radius: 30
 })
 
-viewport.update(draft => {
+parameters.update(draft => {
   draft.ra = 120
   draft.radius = 15
 })
@@ -277,7 +286,7 @@ new Set()
 
 ---
 
-# 変更を監視する
+## 変更を監視する
 
 `subscribe()` に listener を登録します。
 
