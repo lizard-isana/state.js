@@ -135,7 +135,7 @@ theme.update('dark')
 createStateで生成された値は、直接変更しようとするとエラーになります。  
 以下の操作はできません。値を変更する場合には、必ず `update` を使用します。
 ```
-theme = 'dark';
+theme.value = 'dark'
 ```
 これは、意図せずに監視対象の値を変更しないための意図な制限です。
 
@@ -244,9 +244,7 @@ items.update(draft => {
 
 ### 保持できるのは JSON 値のみ
 
-state は、JSON として安全に保存・復元できるデータだけを扱います。J
-
-SON 値だけを扱うことで、state に実行可能なコードや特殊なオブジェクトが混入することを防ぎ、扱うデータ構造とアタックサーフィスを小さく保ちます。ただし、入力データのサニタイズや XSS 対策は行いません。
+state は、JSON として安全に保存・復元できるデータだけを扱います。ここでいう JSON 値とは、null、文字列、有限の数値、真偽値、およびそれらからなる配列・プレーンオブジェクトを指します。JSON 値だけに限定することで、実行可能なコードや特殊なオブジェクトを state に持ち込む余地を減らします。ただし、入力データのサニタイズや XSS 対策は行いません。
 
 利用可能な値:
 
@@ -516,5 +514,5 @@ console.log(appState.value.status)
 Component C:
 ```js
 import { appState } from './app-state.js'
-appState.viewport.subscribe(render)
+appState.subscribe(render)
 ```
