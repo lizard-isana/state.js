@@ -26,6 +26,11 @@ function isJSONValue(value, stack = new WeakSet()) {
 
   try {
     if (Array.isArray(value)) {
+      // Array subclass を拒否
+      if (Object.getPrototypeOf(value) !== Array.prototype) {
+        return false
+      }
+
       if (Object.getOwnPropertySymbols(value).length > 0) {
         return false
       }
@@ -198,6 +203,7 @@ export function createState(initialValue, options = {}) {
   let currentValue = load()
   let currentJson = JSON.stringify(currentValue)
   let readonlyCache = new WeakMap()
+  let notifying = false
 
   const listeners = new Set()
 
@@ -240,20 +246,24 @@ export function createState(initialValue, options = {}) {
     const currentView =
       createReadonly(currentValue, readonlyCache)
 
-    // 更新前に state.value から取得した readonly view と
-    // 同じ世代の Proxy を再利用する
     const previousView =
       createReadonly(previous, previousCache)
 
-    for (const listener of [...listeners]) {
-      try {
-        listener(currentView, previousView)
-      } catch (error) {
-        console.error(
-          '[state] Uncaught error in listener:',
-          error
-        )
+    notifying = true
+
+    try {
+      for (const listener of [...listeners]) {
+        try {
+          listener(currentView, previousView)
+        } catch (error) {
+          console.error(
+            '[state] Uncaught error in listener:',
+            error
+          )
+        }
       }
+    } finally {
+      notifying = false
     }
   }
 
@@ -270,6 +280,14 @@ export function createState(initialValue, options = {}) {
     },
 
     update(updater) {
+      // 同じ state の listener 通知中に再度 update すると
+      // listener ごとの通知順が壊れるため禁止する
+      if (notifying) {
+        throw new TypeError(
+          'state.update() cannot be called while notifying listeners'
+        )
+      }
+
       if (typeof updater !== 'function') {
         commit(updater)
         return

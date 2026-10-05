@@ -186,7 +186,7 @@ state.js では、state であることをコード上で明示し、意図し�
 正しい例:
 
 ```js
-viewport.update(draft => {
+parameters.update(draft => {
   draft.ra = 120
 })
 ```
@@ -194,53 +194,50 @@ viewport.update(draft => {
 この制約により、アロー関数の省略記法による意図しない戻り値もエラーになります。
 
 ```js
-viewport.update(
+parameters.update(
   draft => draft.ra = 120
 )
 ```
 
 ### state.value は読み取り専用
 
-`state.value` を直接変更することはできません。
+state.value から取得できる値は読み取り専用です。
+
+プリミティブ値だけでなく、オブジェクトや配列、その内部にあるネストしたオブジェクトや配列も直接変更することはできません。
 
 ```js
-viewport.value = {
+parameters.value = {
   ra: 120,
-  dec: 30,
-  radius: 15
+  dec: 30
 }
+
+parameters.value.ra = 120
+
+items.value.push(item)
 ```
 
-このコードはエラーになります。
+これらの操作はすべてエラーになります。
 
-```text
+```
 TypeError:
 Reactive state is read-only.
 Use state.update() to modify it.
 ```
 
-オブジェクトの内部も直接変更できません。
+state の変更は必ず update() を使用します。
 
 ```js
-viewport.value.ra = 120
+viewport.update(draft => {
+  draft.ra = 120
+})
 ```
 
-これもエラーになります。
-
-配列操作も同様です。
-
 ```js
-items.value.push(item)
-```
 
-変更するときは必ず `update()` を使用します。
-
-```js
 items.update(draft => {
   draft.push(item)
 })
 ```
-
 
 ### 保持できるのは JSON 値のみ
 
@@ -277,7 +274,7 @@ new Set()
 () => {}
 ```
 
-循環参照、sparse array、Symbol property なども利用できません。
+循環参照、sparse array、Symbol property なども利用できません。配列は通常の Array のみ利用できます。Array を継承した独自クラスは利用できません。
 
 
 ## 変更を監視する
@@ -301,6 +298,20 @@ listener(currentValue, previousValue)
 
 `subscribe()` を呼んだ時点では実行されません。また、update() を呼んでも state の内容に変更がなければ listener は呼び出されません。
 
+【注意】listener の実行中に、同じ state に対して update() を呼び出すことはできません。通知中の再更新は listener ごとの通知順序を不定にするため、エラーになります。必要な変更は元の update() にまとめるか、別の state を更新してください。
+
+以下のような操作はできません。
+```js
+stateA.subscribe(value => {
+  stateA.update(...)
+})
+``` 
+以下のような操作は問題なく行えます。
+```js
+stateA.subscribe(value => {
+  stateB.update(...)
+})
+``` 
 
 ## 監視を解除する
 
@@ -377,6 +388,8 @@ Web Storage
 
 Web Storage
 ```
+
+state.js は Web Storage から読み込んだ値について、JSONとして扱えることだけを確認します。アプリケーション固有のデータ構造やバージョンの検証、migration は行いません。保存形式を変更する場合は、settings:v2 のように storage key をバージョン化するなど、アプリケーション側で管理してください。
 
 ## Sample
 
