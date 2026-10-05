@@ -383,7 +383,47 @@ Web Storage
 ## Sample
 
 ### フォームの内容が変更されたら、UIに即座に反映させる
-(WIP)
+フォームの更新とUIの間にstateを挟むことで、入力と出力を疎結合にすることができます。
+
+createState()でパラメータを初期化しておいて。
+```js
+const parameters = createState({
+  mass: 10,
+  velocity: 20,
+  angle: 45
+})
+```
+
+フォーム要素は、計算内容や表示には触らずにデータを更新するだけ
+```js
+massInput.addEventListener('input', event => {
+  parameters.update(value => {
+    value.mass = Number(event.target.value)
+  })
+})
+
+velocityInput.addEventListener('input', event => {
+  parameters.update(value => {
+    value.velocity = Number(event.target.value)
+  })
+})
+
+angleInput.addEventListener('input', event => {
+  parameters.update(value => {
+    value.angle = Number(event.target.value)
+  })
+})
+```
+
+データの更新を検知して、計算や表示を行う。
+```js
+parameters.subscribe(value => {
+  const result = calculate(value)
+  renderResult(result)
+})
+
+```
+
 
 ### メール送信フォームなどの空欄チェックや分岐を制御する
 (WIP)
@@ -395,52 +435,30 @@ createStateを共有モジュールで定義することで、React, Vue, Astro.
 
 ```js
 // app-state.js
-
 import { createState } from './state.js'
 
-export const State = {
-  viewport: createState(
-    {
-      ra: 0,
-      dec: 0,
-      radius: 30
-    },
-    {
-      storage: sessionStorage,
-      key: 'viewport'
-    }
-  ),
-
-  selectedObject: createState(null),
-
-  theme: createState(
-    'auto',
-    {
-      storage: localStorage,
-      key: 'theme'
-    }
-  )
-}
-```
-
-他のモジュールから:
-
-```js
-import { State } from './app-state.js'
-
-console.log(State.viewport.value)
-```
-
-変更:
-
-```js
-State.viewport.update(draft => {
-  draft.ra = 180
+export const appState = createState({
+  status: 'idle',
+  data: null
 })
 ```
 
-監視:
-
+Component A:
 ```js
-State.viewport.subscribe(render)
+import { appState } from './app-state.js'
+appState.update(state => {
+  state.status = 'ready'
+})
+```
+
+Component B:
+```js
+import { appState } from './app-state.js'
+console.log(appState.value.status)
+```
+
+Component C:
+```js
+import { appState } from './app-state.js'
+appState.viewport.subscribe(render)
 ```
