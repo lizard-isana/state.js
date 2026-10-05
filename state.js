@@ -1,4 +1,4 @@
-// state.js
+/*! state.js | MIT License | Copyright (c) 2026 Isana Kashiwai */
 
 function isJSONValue(value, stack = new WeakSet()) {
   if (value === null) return true
