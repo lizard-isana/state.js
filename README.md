@@ -385,17 +385,15 @@ Web Storage
 ### フォームの内容が変更されたら、UIに即座に反映させる
 フォームの更新とUIの間にstateを挟むことで、入力と出力を疎結合にすることができます。
 
-createState()でパラメータを初期化しておいて。
 ```js
+// createState()でパラメータを初期化。
 const parameters = createState({
   mass: 10,
   velocity: 20,
   angle: 45
 })
-```
 
-フォーム要素は、計算内容や表示には触らずにデータを更新するだけ
-```js
+// フォーム要素は、計算内容や表示には触らずにデータを更新するだけ
 massInput.addEventListener('input', event => {
   parameters.update(value => {
     value.mass = Number(event.target.value)
@@ -413,20 +411,78 @@ angleInput.addEventListener('input', event => {
     value.angle = Number(event.target.value)
   })
 })
-```
 
-データの更新を検知して、計算や表示を行う。
-```js
+
+// subscribeでデータの更新を検知して、計算や表示を行う。
 parameters.subscribe(value => {
   const result = calculate(value)
   renderResult(result)
 })
 
+//後からグラフを描きたくなっても、subscribeを追加するだけ。
+parameters.subscribe(value => {
+  updateChart(value)
+})
+
 ```
 
 
-### メール送信フォームなどの空欄チェックや分岐を制御する
-(WIP)
+### アンケートやメールフォームなどの空欄チェックや分岐を制御する
+ユーザーの入力値によってフォームの内容そのものを変化させたい場合などでも、フォーム要素のイベントとUIの制御を切り離すことができます。
+
+```js
+// createState()でパラメータを初期化。
+const answers = createState({
+  age: null,
+  hasCar: null,
+  carType: null,
+  email: ''
+})
+
+// フォーム要素は、計算内容や表示には触らずにデータを更新するだけ。
+ageInput.addEventListener('input', e => {
+  answers.update(value => {
+    value.age = Number(e.target.value)
+  })
+})
+
+hasCarInput.addEventListener('change', e => {
+  answers.update(value => {
+    value.hasCar = e.target.value === 'yes'
+  })
+})
+
+// subscribeでデータ更新のタイミングで処理を走らせる
+// 空欄をチェックする
+answers.subscribe(value => {
+  const complete =
+    value.age !== null &&
+    value.hasCar !== null &&
+    value.email !== ''
+
+  submitButton.disabled = !complete
+})
+
+//車を持っていなかったら、車のセクションを隠す
+answers.subscribe(value => {
+  carSection.hidden = value.hasCar !== true
+})
+
+//車を持っている人だけ、carTypeを必須にする
+answers.subscribe(value => {
+  const complete =
+    value.age !== null &&
+    value.hasCar !== null &&
+    value.email !== '' &&
+    (
+      value.hasCar === false ||
+      value.carType !== null
+    )
+
+  submitButton.disabled = !complete
+})
+
+```
 
 ### コンポーネント間で値を共有する。
 
