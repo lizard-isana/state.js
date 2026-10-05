@@ -121,6 +121,28 @@ function createReadonly(value, cache) {
       )
     },
 
+    // Object.getOwnPropertyDescriptor() 経由でも
+    // 内部オブジェクトへの生の参照を返さない
+    getOwnPropertyDescriptor(target, property) {
+      const descriptor =
+        Reflect.getOwnPropertyDescriptor(target, property)
+
+      if (
+        descriptor &&
+        'value' in descriptor
+      ) {
+        return {
+          ...descriptor,
+          value: createReadonly(
+            descriptor.value,
+            cache
+          )
+        }
+      }
+
+      return descriptor
+    },
+
     set: failMutation,
     deleteProperty: failMutation,
     defineProperty: failMutation,
@@ -188,14 +210,16 @@ export function createState(initialValue, options = {}) {
 
     const nextJson = JSON.stringify(next)
 
-    // JSONとして内容が同一なら何もしない
+    // JSONとして文字列化した結果が同一なら何もしない
     if (currentJson === nextJson) {
       return
     }
 
     const previous = currentValue
+    const previousCache = readonlyCache
 
-    // すでに stringify 済みなので再度 stringify しない
+    // caller が保持している参照と内部 state を切り離す。
+    // すでに stringify 済みなので再度 stringify しない。
     const committed = JSON.parse(nextJson)
 
     if (storage) {
@@ -216,8 +240,10 @@ export function createState(initialValue, options = {}) {
     const currentView =
       createReadonly(currentValue, readonlyCache)
 
+    // 更新前に state.value から取得した readonly view と
+    // 同じ世代の Proxy を再利用する
     const previousView =
-      createReadonly(previous, new WeakMap())
+      createReadonly(previous, previousCache)
 
     for (const listener of [...listeners]) {
       try {
