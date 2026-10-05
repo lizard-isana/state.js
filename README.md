@@ -1,7 +1,15 @@
 # state.js - observable state container
 
-「プロジェクト全体を通して、どこからでも読み取れる共通の値を保持し、その値が変更されたときに処理を実行する」ためのミニマムな状態管理コンテナです。
+「プロジェクト全体を通して、どこからでも読み取れる共通の値を保持し、その値が変更されたときに通知する」ためのミニマムな状態管理コンテナです。
 
+**state.js の3つの特徴「小さい・少ない・間違えにくい」**
+
+- **小さい:** ビルドツール不要のシングルファイル構成
+- **少ない:** 値の保持と変更通知に徹したシンプル設計
+- **間違えにくい:** 誤った操作をその場で止める安全指向
+
+より高度な状態管理が必要な場合は、Nano Stores などの専用ライブラリの利用をおすすめします。
+ref. [nanostores/nanostores: A tiny (340 bytes) state manager for React/RN/Preact/Vue/Svelte with many atomic tree-shakable stores](https://github.com/nanostores/nanostores)
 
 ## インストール
 
