@@ -299,7 +299,7 @@ listener は state が更新されたときに呼び出されます。
 listener(currentValue, previousValue)
 ```
 
-`subscribe()` を呼んだ時点では実行されません。
+`subscribe()` を呼んだ時点では実行されません。また、update() を呼んでも state の内容に変更がなければ listener は呼び出されません。
 
 
 ## 監視を解除する
@@ -483,9 +483,7 @@ answers.subscribe(value => {
 ```
 
 ### コンポーネント間で値を共有する。
-
-createStateを共有モジュールで定義することで、React, Vue, Astro.js, WebCompornentなどのコンポーネント間で値を共有することができます。
-
+同じページ・JavaScript実行環境内で、共有モジュールから export した state を import することで、複数のコンポーネントから同じ state を参照できます。
 
 ```js
 // app-state.js
@@ -514,5 +512,6 @@ console.log(appState.value.status)
 Component C:
 ```js
 import { appState } from './app-state.js'
+render(appState.value); // subscribeしただけでは実行されないので、初期状態を表示するために最初に実行する必要があります。
 appState.subscribe(render)
 ```
