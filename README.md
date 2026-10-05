@@ -284,8 +284,6 @@ new Set()
 循環参照、sparse array、Symbol property なども利用できません。
 
 
----
-
 ## 変更を監視する
 
 `subscribe()` に listener を登録します。
@@ -307,9 +305,8 @@ listener(currentValue, previousValue)
 
 `subscribe()` を呼んだ時点では実行されません。
 
----
 
-# 監視を解除する
+## 監視を解除する
 
 登録した listener を明示的に解除します。
 
