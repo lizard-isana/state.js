@@ -8,7 +8,7 @@
 - **少ない:** 値の保持と変更通知に徹したシンプル設計
 - **間違えにくい:** 誤った操作をその場で止める安全指向
 
-より高度な状態管理が必要な場合は、Nano Stores などの専用ライブラリの利用をおすすめします。
+より高度な状態管理が必要な場合は、Nano Stores などの専用ライブラリの利用をおすすめします。  
 ref. [nanostores/nanostores: A tiny (340 bytes) state manager for React/RN/Preact/Vue/Svelte with many atomic tree-shakable stores](https://github.com/nanostores/nanostores)
 
 ## インストール
