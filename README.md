@@ -89,7 +89,6 @@ state.unsubscribe(listener)
 ```
 いずれも操作は明示的に行われるので、ソースコード内での操作が見えやすい、という特徴があります。
 
----
 
 ### 値を読む
 
@@ -113,8 +112,6 @@ const parameters = createState({
 console.log(parameters.value.ra)
 ```
 
-
----
 
 ### 値を変更する
 
@@ -178,7 +175,6 @@ items.update(draft => {
 
 storage への保存と listener への通知は1回だけ行われます。
 
----
 
 ## 制約
 state.js では、state であることをコード上で明示し、意図しない直接代入や破壊的変更を防ぐため、値の扱いにいくつかの制約を設けています。
