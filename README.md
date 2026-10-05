@@ -366,7 +366,9 @@ const settings = createState(
 
 ### runtime state と storage
 
-実行中の正本はメモリ上の state です。
+実行中の正本はメモリ上の state です。storage への保存に失敗しても、runtime state 自体は更新されます。
+
+Web Storage は永続化のためだけに使用しています。Web Storageそのものの変更を監視しているわけではないので、タブやウィンドウを跨いだ通知は行いません。
 
 ```text
 Web Storage
@@ -378,12 +380,9 @@ Web Storage
 Web Storage
 ```
 
-Web Storage は永続化のためだけに使用します。
+## Sample
 
-storage への保存に失敗しても、runtime state 自体は更新されます。
-
-
-## 共有 state
+### 共有 state
 
 複数のモジュールから利用する値は、ひとつのモジュールにまとめられます。
 
