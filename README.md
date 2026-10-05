@@ -1,7 +1,15 @@
 # state.js - observable state container
 
-「プロジェクト全体を通して、どこからでも読み取れる共通の値を保持し、その値が変更されたときに処理を実行する」ためのミニマムな状態管理コンテナです。
+「プロジェクト全体を通して、どこからでも読み取れる共通の値を保持し、その値が変更されたときに通知する」ためのミニマムな状態管理コンテナです。
 
+**state.js の3つの特徴「小さい・少ない・間違えにくい」**
+
+- **小さい:** ビルドツール不要のシングルファイル構成
+- **少ない:** 値の保持と変更通知に徹したシンプル設計
+- **間違えにくい:** 誤った操作をその場で止める安全指向
+
+より高度な状態管理が必要な場合は、Nano Stores などの専用ライブラリの利用をおすすめします。  
+ref. [nanostores/nanostores: A tiny (340 bytes) state manager for React/RN/Preact/Vue/Svelte with many atomic tree-shakable stores](https://github.com/nanostores/nanostores)
 
 ## インストール
 
@@ -9,29 +17,30 @@
 
 ```html
 <script type="module">
+  // ライブラリをES Modulesで読み込んで
   import { createState } from './state.js'
 
+  // createState で値を保持
   const count = createState(0)
 
   function render(value) {
     document.querySelector('#count').textContent = value
   }
-
+　 // subscribe で値を監視（変更されたら render を実行）
   count.subscribe(render)
 
   document.querySelector('#button').onclick = () => {
+    // ボタンを押したら値を変更（値が変わるとrenderが実行されて表示が変わる）
     count.update(count.value + 1)
   }
-
+　 //初期表示用(subscribeしただけではrenderは動かないので最初に一回だけ実行する)
   render(count.value)
 </script>
 ```
 
-npm、bundler、framework は必要ありません。
-
-
 ## 基本的な使い方
 
+値を保持する:
 ```js
 import { createState } from './state.js'
 
@@ -66,8 +75,6 @@ count.subscribe(render)
 count.unsubscribe(render)
 ```
 
----
-
 ## API
 
 公開 API は次の4つだけです。
@@ -80,8 +87,8 @@ state.update(...)
 state.subscribe(listener)
 state.unsubscribe(listener)
 ```
+いずれも操作は明示的に行われるので、ソースコード内での操作が見えやすい、という特徴があります。
 
----
 
 ### 値を読む
 
@@ -96,16 +103,15 @@ console.log(theme.value)
 オブジェクトもそのまま参照できます。
 
 ```js
-const viewport = createState({
+const parameters = createState({
   ra: 0,
   dec: 0,
   radius: 30
 })
 
-console.log(viewport.value.ra)
+console.log(parameters.value.ra)
 ```
 
----
 
 ### 値を変更する
 
@@ -125,20 +131,28 @@ const theme = createState('auto')
 theme.update('dark')
 ```
 
----
+【注意】
+createStateで生成された値は、直接変更しようとするとエラーになります。  
+以下の操作はできません。値を変更する場合には、必ず `update` を使用します。
+```
+theme.value = 'dark'
+```
+これは、意図せずに監視対象の値を変更しないための意図な制限です。
+
 
 ### オブジェクトや配列を変更する
 
-関数には、現在の state をコピーした変更可能な値が仮引数として渡されます。仮引数名は任意です。以下では `draft` という名前を使っています。
+関数には、現在の state をコピーした変更可能な値が仮引数として渡されます。  
+仮引数名は任意です。以下では `draft` という名前を使っています。
 
 ```js
-const viewport = createState({
+const parameters = createState({
   ra: 0,
   dec: 0,
   radius: 30
 })
 
-viewport.update(draft => {
+parameters.update(draft => {
   draft.ra = 120
   draft.radius = 15
 })
@@ -161,7 +175,6 @@ items.update(draft => {
 
 storage への保存と listener への通知は1回だけ行われます。
 
----
 
 ## 制約
 state.js では、state であることをコード上で明示し、意図しない直接代入や破壊的変更を防ぐため、値の扱いにいくつかの制約を設けています。
@@ -231,7 +244,7 @@ items.update(draft => {
 
 ### 保持できるのは JSON 値のみ
 
-state は、JSON として安全に保存・復元できるデータだけを扱います。
+state は、JSON として安全に保存・復元できるデータだけを扱います。ここでいう JSON 値とは、null、文字列、有限の数値、真偽値、およびそれらからなる配列・プレーンオブジェクトを指します。JSON 値だけに限定することで、実行可能なコードや特殊なオブジェクトを state に持ち込む余地を減らします。ただし、入力データのサニタイズや XSS 対策は行いません。
 
 利用可能な値:
 
@@ -267,9 +280,7 @@ new Set()
 循環参照、sparse array、Symbol property なども利用できません。
 
 
----
-
-# 変更を監視する
+## 変更を監視する
 
 `subscribe()` に listener を登録します。
 
@@ -288,11 +299,10 @@ listener は state が更新されたときに呼び出されます。
 listener(currentValue, previousValue)
 ```
 
-`subscribe()` を呼んだ時点では実行されません。
+`subscribe()` を呼んだ時点では実行されません。また、update() を呼んでも state の内容に変更がなければ listener は呼び出されません。
 
----
 
-# 監視を解除する
+## 監視を解除する
 
 登録した listener を明示的に解除します。
 
@@ -354,7 +364,9 @@ const settings = createState(
 
 ### runtime state と storage
 
-実行中の正本はメモリ上の state です。
+実行中の正本はメモリ上の state です。storage への保存に失敗しても、runtime state 自体は更新されます。
+
+Web Storage は永続化のためだけに使用しています。Web Storageそのものの変更を監視しているわけではないので、タブやウィンドウを跨いだ通知は行いません。
 
 ```text
 Web Storage
@@ -366,63 +378,140 @@ Web Storage
 Web Storage
 ```
 
-Web Storage は永続化のためだけに使用します。
+## Sample
 
-storage への保存に失敗しても、runtime state 自体は更新されます。
+### フォームの内容が変更されたら、UIに即座に反映させる
+フォームの更新とUIの間にstateを挟むことで、入力と出力を疎結合にすることができます。
+
+```js
+// createState()でパラメータを初期化。
+const parameters = createState({
+  mass: 10,
+  velocity: 20,
+  angle: 45
+})
+
+// フォーム要素は、計算内容や表示には触らずにデータを更新するだけ
+massInput.addEventListener('input', event => {
+  parameters.update(value => {
+    value.mass = Number(event.target.value)
+  })
+})
+
+velocityInput.addEventListener('input', event => {
+  parameters.update(value => {
+    value.velocity = Number(event.target.value)
+  })
+})
+
+angleInput.addEventListener('input', event => {
+  parameters.update(value => {
+    value.angle = Number(event.target.value)
+  })
+})
 
 
-## 共有 state
+// subscribeでデータの更新を検知して、計算や表示を行う。
+parameters.subscribe(value => {
+  const result = calculate(value)
+  renderResult(result)
+})
 
-複数のモジュールから利用する値は、ひとつのモジュールにまとめられます。
+//後からグラフを描きたくなっても、subscribeを追加するだけ。
+parameters.subscribe(value => {
+  updateChart(value)
+})
+
+```
+
+
+### アンケートやメールフォームなどの空欄チェックや分岐を制御する
+ユーザーの入力値によってフォームの内容そのものを変化させたい場合などでも、フォーム要素のイベントとUIの制御を切り離すことができます。
+
+```js
+// createState()でパラメータを初期化。
+const answers = createState({
+  age: null,
+  hasCar: null,
+  carType: null,
+  email: ''
+})
+
+// フォーム要素は、計算内容や表示には触らずにデータを更新するだけ。
+ageInput.addEventListener('input', e => {
+  answers.update(value => {
+    value.age = Number(e.target.value)
+  })
+})
+
+hasCarInput.addEventListener('change', e => {
+  answers.update(value => {
+    value.hasCar = e.target.value === 'yes'
+  })
+})
+
+// subscribeでデータ更新のタイミングで処理を走らせる
+// 空欄をチェックする
+answers.subscribe(value => {
+  const complete =
+    value.age !== null &&
+    value.hasCar !== null &&
+    value.email !== ''
+
+  submitButton.disabled = !complete
+})
+
+//車を持っていなかったら、車のセクションを隠す
+answers.subscribe(value => {
+  carSection.hidden = value.hasCar !== true
+})
+
+//車を持っている人だけ、carTypeを必須にする
+answers.subscribe(value => {
+  const complete =
+    value.age !== null &&
+    value.hasCar !== null &&
+    value.email !== '' &&
+    (
+      value.hasCar === false ||
+      value.carType !== null
+    )
+
+  submitButton.disabled = !complete
+})
+
+```
+
+### コンポーネント間で値を共有する。
+同じページ・JavaScript実行環境内で、共有モジュールから export した state を import することで、複数のコンポーネントから同じ state を参照できます。
 
 ```js
 // app-state.js
-
 import { createState } from './state.js'
 
-export const State = {
-  viewport: createState(
-    {
-      ra: 0,
-      dec: 0,
-      radius: 30
-    },
-    {
-      storage: sessionStorage,
-      key: 'viewport'
-    }
-  ),
-
-  selectedObject: createState(null),
-
-  theme: createState(
-    'auto',
-    {
-      storage: localStorage,
-      key: 'theme'
-    }
-  )
-}
-```
-
-他のモジュールから:
-
-```js
-import { State } from './app-state.js'
-
-console.log(State.viewport.value)
-```
-
-変更:
-
-```js
-State.viewport.update(draft => {
-  draft.ra = 180
+export const appState = createState({
+  status: 'idle',
+  data: null
 })
 ```
 
-監視:
-
+Component A:
 ```js
-State.viewport.subscribe(render)
+import { appState } from './app-state.js'
+appState.update(state => {
+  state.status = 'ready'
+})
+```
+
+Component B:
+```js
+import { appState } from './app-state.js'
+console.log(appState.value.status)
+```
+
+Component C:
+```js
+import { appState } from './app-state.js'
+render(appState.value); // subscribeしただけでは実行されないので、初期状態を表示するために最初に実行する必要があります。
+appState.subscribe(render)
 ```
