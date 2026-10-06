@@ -26,7 +26,7 @@ function isJSONValue(value, stack = new WeakSet()) {
 
   try {
     if (Array.isArray(value)) {
-      // Array subclass を拒否
+      // 通常の Array のみ許可
       if (Object.getPrototypeOf(value) !== Array.prototype) {
         return false
       }
@@ -203,7 +203,7 @@ export function createState(initialValue, options = {}) {
   let currentValue = load()
   let currentJson = JSON.stringify(currentValue)
   let readonlyCache = new WeakMap()
-  let notifying = false
+  let locked = false
 
   const listeners = new Set()
 
@@ -246,24 +246,20 @@ export function createState(initialValue, options = {}) {
     const currentView =
       createReadonly(currentValue, readonlyCache)
 
+    // 更新前に取得済みの state.value と
+    // 同じ世代の readonly Proxy を再利用する
     const previousView =
       createReadonly(previous, previousCache)
 
-    notifying = true
-
-    try {
-      for (const listener of [...listeners]) {
-        try {
-          listener(currentView, previousView)
-        } catch (error) {
-          console.error(
-            '[state] Uncaught error in listener:',
-            error
-          )
-        }
+    for (const listener of [...listeners]) {
+      try {
+        listener(currentView, previousView)
+      } catch (error) {
+        console.error(
+          '[state] Uncaught error in listener:',
+          error
+        )
       }
-    } finally {
-      notifying = false
     }
   }
 
@@ -280,40 +276,46 @@ export function createState(initialValue, options = {}) {
     },
 
     update(updater) {
-      // 同じ state の listener 通知中に再度 update すると
-      // listener ごとの通知順が壊れるため禁止する
-      if (notifying) {
+      // mutator の実行開始から listener の通知終了まで、
+      // 同じ state への再入 update を禁止する
+      if (locked) {
         throw new TypeError(
-          'state.update() cannot be called while notifying listeners'
+          'state.update() cannot be called while the same state is updating'
         )
       }
 
-      if (typeof updater !== 'function') {
-        commit(updater)
-        return
+      locked = true
+
+      try {
+        if (typeof updater !== 'function') {
+          commit(updater)
+          return
+        }
+
+        if (
+          currentValue === null ||
+          typeof currentValue !== 'object'
+        ) {
+          throw new TypeError(
+            'state.update(mutator) requires an object or array state; ' +
+            'pass the next JSON value directly instead'
+          )
+        }
+
+        const draft = cloneJSON(currentValue)
+        const result = updater(draft)
+
+        if (result !== undefined) {
+          throw new TypeError(
+            'state.update(mutator) must not return a value; ' +
+            'mutate the draft instead'
+          )
+        }
+
+        commit(draft)
+      } finally {
+        locked = false
       }
-
-      if (
-        currentValue === null ||
-        typeof currentValue !== 'object'
-      ) {
-        throw new TypeError(
-          'state.update(mutator) requires an object or array state; ' +
-          'pass the next JSON value directly instead'
-        )
-      }
-
-      const draft = cloneJSON(currentValue)
-      const result = updater(draft)
-
-      if (result !== undefined) {
-        throw new TypeError(
-          'state.update(mutator) must not return a value; ' +
-          'mutate the draft instead'
-        )
-      }
-
-      commit(draft)
     },
 
     subscribe(listener) {

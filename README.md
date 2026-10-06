@@ -12,8 +12,6 @@
 
 ref. [nanostores/nanostores](https://github.com/nanostores/nanostores)
 
----
-
 ## インストール
 
 `state.js` をダウンロードして、通常の ES Modules としてそのまま利用します。ビルドツールは不要です。
@@ -40,8 +38,6 @@ ref. [nanostores/nanostores](https://github.com/nanostores/nanostores)
   render(count.value)
 </script>
 ```
-
----
 
 ## 基本的な使い方
 
@@ -80,8 +76,6 @@ count.subscribe(render)
 ```js
 count.unsubscribe(render)
 ```
-
----
 
 ## API
 
@@ -188,9 +182,18 @@ items.update(draft => {
 
 storage への保存と listener への通知は1回だけ行われます。
 
-callback 形式の `update()` はオブジェクトと配列にだけ使用できます。
+callback 形式の `update()` はオブジェクトと配列にだけ使用できます。プリミティブ値は新しい値を直接渡してください。
 
-プリミティブ値は新しい値を直接渡してください。
+また、`update()` の処理中に同じ state に対して再度 `update()` を呼び出すことはできません。
+
+```js
+state.update(draft => {
+  state.update(...) // エラー
+  draft.value = 1
+})
+```
+
+一回の更新が完了するまで、同じ state に次の更新を重ねないための制限です。
 
 ### 変更を監視する — `state.subscribe()`
 
@@ -211,9 +214,7 @@ listener には、更新後の値と更新前の値が渡されます。
 listener(currentValue, previousValue)
 ```
 
-`subscribe()` を呼んだ時点では listener は実行されません。
-
-現在値が必要な場合は `state.value` から取得します。
+`subscribe()` を呼んだ時点では listener は実行されません。現在値が必要な場合は `state.value` から取得します。
 
 ```js
 render(parameters.value)
@@ -222,29 +223,37 @@ parameters.subscribe(render)
 
 `update()` の結果が現在の state と同じ JSON 表現になる場合、state の更新と listener への通知は行われません。
 
-#### listener から同じ state を更新することはできません
-
-listener の実行中に、同じ state に対して `update()` を呼び出すことはできません。
+listener の実行も、その state の一回の `update()` の一部として扱われます。そのため、listener から同じ state を再度更新することはできません。
 
 ```js
-stateA.subscribe(value => {
-  stateA.update(...)
+stateA.subscribe(() => {
+  stateA.update(...) // エラー
 })
 ```
 
-この操作はエラーになります。
-
-通知中に同じ state を再度更新すると、listener ごとの通知順序が不明確になるためです。
-
-必要な変更は元の `update()` にまとめるか、別の state を更新してください。
-
-別の state の更新は問題なく行えます。
+listener から別の state を更新することはできます。
 
 ```js
 stateA.subscribe(value => {
   stateB.update(...)
 })
 ```
+
+ただし、更新が循環して、まだ処理中の state に戻ることはできません。
+
+```text
+stateA update
+  ↓
+stateA listener
+  ↓
+stateB update
+  ↓
+stateB listener
+  ↓
+stateA update  ← エラー
+```
+
+listener 内で発生した例外は state.js が捕捉して console に出力し、他の listener の通知は継続します。そのため、listener 内で禁止された `update()` を呼び出した場合も、その `TypeError` は元の `update()` の呼び出し元には伝播しません。
 
 ### 監視を解除する — `state.unsubscribe()`
 
@@ -264,11 +273,8 @@ function render(value) {
 parameters.subscribe(render)
 
 // later
-
 parameters.unsubscribe(render)
 ```
-
----
 
 ## Web Storage
 
@@ -341,8 +347,6 @@ key: 'settings:v2'
 ```
 
 のように storage key をバージョン化するなど、アプリケーション側で管理してください。
-
----
 
 ## 制約
 
@@ -425,6 +429,18 @@ items.update(draft => {
 })
 ```
 
+`state.value` のオブジェクトや配列は読み取り専用の Proxy です。そのため、`structuredClone()`、`postMessage()`、IndexedDB など、structured clone を使用する API にそのまま渡すことはできません。
+
+通常の JSON 値として独立したコピーが必要な場合は、JSON としてコピーできます。
+
+```js
+const copy = JSON.parse(
+  JSON.stringify(state.value)
+)
+```
+
+`{ ...state.value }` や `[...state.value]` は浅いコピーなので、ネストしたオブジェクトや配列は読み取り専用のままです。
+
 ### 保持できるのは JSON 値のみ
 
 state は、JSON として安全に保存・復元できるデータだけを扱います。
@@ -479,12 +495,9 @@ new Set()
 
 配列は通常の `Array` のみ利用できます。`Array` を継承した独自クラスは利用できません。
 
----
-
 ## state.js がやらないこと
 
 state.js は、小規模なWebページやUIで共有する状態を、単純かつ安全に扱うためのライブラリです。機能をしぼり、あえて制約を設けることで、コードが複雑化することを防ぎ、メンテナンス性を維持することを意図しています。より多くの機能が必要になった場合は、その用途に適した状態管理ライブラリやフレームワークへ移行することを検討してください。
-
 
 ### computed state / dependency tracking
 
@@ -527,7 +540,6 @@ state.js が行うのは、
 
 ことだけです。
 
----
 
 ## Sample
 
@@ -592,7 +604,10 @@ const answers = createState({
 // 入力側は state を更新するだけ
 ageInput.addEventListener('input', event => {
   answers.update(draft => {
-    draft.age = Number(event.target.value)
+    draft.age =
+      event.target.value === ''
+        ? null
+        : Number(event.target.value)
   })
 })
 
@@ -607,7 +622,7 @@ answers.subscribe(value => {
   carSection.hidden = value.hasCar !== true
 })
 
-// 現在のstateだけを見て入力完了を判定する
+// 現在の state だけを見て入力完了を判定する
 answers.subscribe(value => {
   const complete =
     value.age !== null &&
