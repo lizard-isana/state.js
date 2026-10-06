@@ -497,50 +497,125 @@ new Set()
 
 配列は通常の `Array` のみ利用できます。`Array` を継承した独自クラスは利用できません。
 
-## state.js がやらないこと
+## state.js は何ではないか
 
-state.js は、小規模なWebページやUIで共有する状態を、単純かつ安全に扱うためのライブラリです。機能をしぼり、あえて制約を設けることで、コードが複雑化することを防ぎ、メンテナンス性を維持することを意図しています。より多くの機能が必要になった場合は、その用途に適した状態管理ライブラリやフレームワークへ移行することを検討してください。
+state.js は、小さな共有状態を安全に保持し、その変更を通知するためのライブラリです。
 
-### computed state / dependency tracking
+アプリケーションのすべてのデータや処理を state.js の中に集めることは目的としていません。
 
-複数の state から値を自動的に計算する computed state や、state 間の依存関係を自動的に追跡する機能はありません。
+### state.js は data store ではありません
 
-必要な処理は `subscribe()` などを使って明示的に記述します。
+state.js が扱うのは、巨大なデータそのものではなく、アプリケーションの現在の **state** です。
 
-### 大規模・高頻度な state
-
-state.js は更新時に state 全体をコピー・検証・シリアライズします。
-
-そのため、大量のデータを保持したり、アニメーションのように高頻度で更新したりする用途には向いていません。
-
-変更部分だけを共有する構造的共有や、参照比較を利用した差分更新も行いません。
-
-### async / data fetching の抽象化
-
-fetch、キャッシュ、ローディング状態、エラー状態などを特別に扱う機能はありません。
-
-必要な場合は、それらを通常の state として表現します。
+たとえば大量の計算結果や画像データ、TypedArray、Web Worker が扱うバッファなどを state.js に格納する必要はありません。
 
 ```js
-const data = createState({
-  status: 'idle',
-  value: null,
-  error: null
+const calculation = createState({
+  status: 'running',
+  progress: 0.65,
+  resultId: null
 })
 ```
 
-### DOM / framework 機能
+計算結果そのものは別の場所に保持し、
 
-ルーティング、DOM更新、フォームバインディング、ライフサイクル管理などは行いません。
+```js
+calculation.update(draft => {
+  draft.status = 'complete'
+  draft.progress = 1
+  draft.resultId = 'result-123'
+})
+```
 
-state.js が行うのは、
+のように、「計算が完了した」「どの結果を使うか」といった状態だけを共有できます。
 
-- 値を保持する
-- 値を安全に変更する
-- 変更を通知する
-- 必要なら Web Storage に保存する
+そのため state.js は、大規模なデータ、高頻度に変化するデータ、リアルタイム処理のためのデータコンテナとしては設計されていません。
 
-ことだけです。
+### state.js は UIフレームワークではありません
+
+state.js は DOM を更新しません。
+
+Vue や React のように、state と画面表示の対応関係を管理する機能もありません。
+
+```js
+state.subscribe(value => {
+  render(value)
+})
+```
+
+のようにUIを更新することもできますが、変更を受け取る相手はUIである必要はありません。
+
+```js
+state.subscribe(value => {
+  recalculate(value)
+})
+
+state.subscribe(value => {
+  save(value)
+})
+```
+
+計算、保存、描画、別の処理など、state の変化に反応するものはすべて同じように扱えます。
+
+### state.js は イベントバスではありません
+
+state.js が共有するのは「今何が起きたか」ではなく「今どういう状態か」です。通知するのはあくまで「状態が変化したこと」だけです。
+
+```js
+// event
+'OPEN_DIALOG'
+
+// state
+{
+  dialogOpen: true
+}
+```
+
+イベントはその瞬間のできごとですが、state は保持された値です。あとから参加した処理でも `state.value` を読めば現在の状態を知ることができます。
+
+### state.js は computed や依存関係を管理するライブラリではありません
+
+state.js は computed values や依存関係の自動追跡を提供しません。
+
+単純な派生値は、通常の JavaScript 関数で計算できます。
+
+```js
+function fahrenheit(celsius) {
+  return celsius * 9 / 5 + 32
+}
+```
+
+複数の値を常に整合した状態として保持したい場合は、ひとつの `update()` の中でまとめて計算できます。
+
+```js
+temperature.update(draft => {
+  draft.celsius = 25
+  draft.fahrenheit = 77
+  draft.kelvin = 298.15
+})
+```
+
+複雑な依存グラフや自動再計算が必要になった場合は、Nano Stores など、より高機能な状態管理ライブラリの利用を検討してください。
+
+### state.js は アプリケーションの構造を決めるフレームワークではありません
+
+state.js は action、reducer、store、effect といったアーキテクチャを定義しません。
+
+必要であれば、普通の JavaScript 関数を state の前に置くことができます。
+
+```js
+function setCelsius(celsius) {
+  temperature.update(draft => {
+    draft.celsius = celsius
+    draft.fahrenheit = celsius * 9 / 5 + 32
+    draft.kelvin = celsius + 273.15
+  })
+}
+```
+
+state.js は、状態の保持・変更・通知だけを担当します。
+
+その上にどんなAPIやアプリケーション構造を作るかは、通常の JavaScript に任せます。
 
 
 ## Sample
@@ -728,14 +803,6 @@ function createTemperatureControl() {
 
     get value() {
       return state.value
-    },
-
-    subscribe(listener) {
-      state.subscribe(listener)
-    },
-
-    unsubscribe(listener) {
-      state.unsubscribe(listener)
     }
   }
 }
