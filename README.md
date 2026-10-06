@@ -690,6 +690,79 @@ appState.subscribe(render)
 
 別タブ、iframe、Web Worker などの異なる実行環境との状態同期は state.js の役割には含みません。
 
+
+### state を直接公開せず、操作APIを作る
+
+state.js の state は、そのまま外部に公開する必要はありません。
+
+`createState()` で作った state をモジュール内部に保持し、普通の JavaScript 関数から `update()` することで、アプリケーション固有の操作APIを作ることもできます。
+
+以下は、温度を摂氏・華氏・絶対温度で保持し、どの単位から変更しても3つの値が同時に更新されるAPIの例です。
+
+```js
+import { createState } from './state.js'
+
+function createTemperatureControl() {
+  const state = createState({
+    celsius: 20,
+    fahrenheit: 68,
+    kelvin: 293.15
+  })
+
+  return {
+    setCelsius(celsius) {
+      state.update(draft => {
+        draft.celsius = celsius
+        draft.fahrenheit = celsius * 9 / 5 + 32
+        draft.kelvin = celsius + 273.15
+      })
+    },
+
+    setFahrenheit(fahrenheit) {
+      state.update(draft => {
+        draft.fahrenheit = fahrenheit
+        draft.celsius = (fahrenheit - 32) * 5 / 9
+        draft.kelvin = draft.celsius + 273.15
+      })
+    },
+
+    get value() {
+      return state.value
+    },
+
+    subscribe(listener) {
+      state.subscribe(listener)
+    },
+
+    unsubscribe(listener) {
+      state.unsubscribe(listener)
+    }
+  }
+}
+
+const temperature = createTemperatureControl()
+
+temperature.setCelsius(25)
+
+console.log(temperature.value)
+// {
+//   celsius: 25,
+//   fahrenheit: 77,
+//   kelvin: 298.15
+// }
+```
+
+外部から見ると、使っているのは普通の関数です。
+
+```js
+temperature.setCelsius(25)
+temperature.setFahrenheit(86)
+```
+
+しかし内部では、複数の値がひとつの `update()` の中でまとめて変更され、整合した state として一度だけ確定・通知されます。
+
+このように、state.js 自体に action や reducer などの仕組みはありませんが、必要であれば普通の JavaScript の関数やクロージャを使って、state の上にアプリケーション固有のAPIを構築できます。
+
 ## 開発・テスト
 
 Node.js の標準テストランナーで回帰テストを実行できます。追加パッケージのインストールは不要です。
