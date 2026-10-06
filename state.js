@@ -69,20 +69,15 @@ function isJSONValue(value, stack = new WeakSet()) {
     }
 
     const names = Object.getOwnPropertyNames(value)
-    const keys = Object.keys(value)
 
-    // non-enumerable property を拒否
-    if (names.length !== keys.length) {
-      return false
-    }
-
-    for (const key of keys) {
+    for (const key of names) {
       const descriptor =
         Object.getOwnPropertyDescriptor(value, key)
 
-      // getter / setter を拒否
+      // non-enumerable property / getter / setter を拒否
       if (
         !descriptor ||
+        !descriptor.enumerable ||
         !('value' in descriptor) ||
         !isJSONValue(descriptor.value, stack)
       ) {
@@ -179,25 +174,23 @@ export function createState(initialValue, options = {}) {
   }
 
   function load() {
-    if (!storage) {
-      return cloneJSON(initialValue)
-    }
+    if (storage) {
+      try {
+        const saved = storage.getItem(key)
 
-    try {
-      const saved = storage.getItem(key)
+        if (saved !== null) {
+          const parsed = JSON.parse(saved)
 
-      if (saved === null) {
-        return cloneJSON(initialValue)
+          if (isJSONValue(parsed)) {
+            return parsed
+          }
+        }
+      } catch {
+        // 読み込みに失敗した場合は初期値に戻す
       }
-
-      const parsed = JSON.parse(saved)
-
-      return isJSONValue(parsed)
-        ? parsed
-        : cloneJSON(initialValue)
-    } catch {
-      return cloneJSON(initialValue)
     }
+
+    return cloneJSON(initialValue)
   }
 
   let currentValue = load()

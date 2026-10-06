@@ -689,3 +689,13 @@ appState.subscribe(render)
 共有されるのは同じ JavaScript 実行環境内の state です。
 
 別タブ、iframe、Web Worker などの異なる実行環境との状態同期は state.js の役割には含みません。
+
+## 開発・テスト
+
+Node.js の標準テストランナーで回帰テストを実行できます。追加パッケージのインストールは不要です。
+
+```sh
+node --test tests/state.test.mjs
+```
+
+通常版の `state.js` と min 版の `state.min.js` の両方について、JSON 値の制約、読み取り専用保護、更新・通知、再入制限、Storage の復元と失敗処理を検証します。
