@@ -8,58 +8,64 @@
 - **少ない:** 値の保持と変更通知に徹したシンプル設計
 - **間違えにくい:** 誤った操作をその場で止める安全指向
 
-より高度な状態管理が必要な場合は、Nano Stores などの専用ライブラリの利用をおすすめします。  
-ref. [nanostores/nanostores: A tiny (340 bytes) state manager for React/RN/Preact/Vue/Svelte with many atomic tree-shakable stores](https://github.com/nanostores/nanostores)
+より高度な状態管理が必要な場合は、Nano Stores などの専用ライブラリの利用をおすすめします。
+
+ref. [nanostores/nanostores](https://github.com/nanostores/nanostores)
+
+---
 
 ## インストール
 
-ダウンロードして、通常の ES Modules としてそのまま利用します。ビルドツールは不要です。
+`state.js` をダウンロードして、通常の ES Modules としてそのまま利用します。ビルドツールは不要です。
 
 ```html
 <script type="module">
-  // ライブラリをES Modulesで読み込んで
   import { createState } from './state.js'
 
-  // createState で値を保持
   const count = createState(0)
 
   function render(value) {
     document.querySelector('#count').textContent = value
   }
-　 // subscribe で値を監視（変更されたら render を実行）
+
+  // 変更されたら render を実行
   count.subscribe(render)
 
   document.querySelector('#button').onclick = () => {
-    // ボタンを押したら値を変更（値が変わるとrenderが実行されて表示が変わる）
     count.update(count.value + 1)
   }
-　 //初期表示用(subscribeしただけではrenderは動かないので最初に一回だけ実行する)
+
+  // subscribe() は登録時には実行されないので、
+  // 初期状態は state.value から取得する
   render(count.value)
 </script>
 ```
 
+---
+
 ## 基本的な使い方
 
-値を保持する:
+値を保持します。
+
 ```js
 import { createState } from './state.js'
 
 const count = createState(0)
 ```
 
-現在の値を読む:
+現在の値は `.value` から読み取ります。
 
 ```js
 console.log(count.value)
 ```
 
-値を変更する:
+値を変更します。
 
 ```js
 count.update(1)
 ```
 
-変更を監視する:
+変更を監視します。
 
 ```js
 function render(value, previous) {
@@ -69,15 +75,17 @@ function render(value, previous) {
 count.subscribe(render)
 ```
 
-監視を解除する:
+監視を解除します。
 
 ```js
 count.unsubscribe(render)
 ```
 
+---
+
 ## API
 
-公開 API は次の4つだけです。
+`createState()` が返す state オブジェクトの公開 API は次の4つだけです。
 
 ```js
 const state = createState(initialValue, options?)
@@ -87,10 +95,10 @@ state.update(...)
 state.subscribe(listener)
 state.unsubscribe(listener)
 ```
-いずれも操作は明示的に行われるので、ソースコード内での操作が見えやすい、という特徴があります。
 
+すべての操作を明示的に行うため、ソースコード上で state の読み取り・変更・監視を追いやすい設計です。
 
-### 値を読む
+### 値を読む — `state.value`
 
 現在値は `state.value` から取得します。
 
@@ -100,7 +108,7 @@ const theme = createState('auto')
 console.log(theme.value)
 ```
 
-オブジェクトもそのまま参照できます。
+オブジェクトも同じように参照できます。
 
 ```js
 const parameters = createState({
@@ -112,8 +120,9 @@ const parameters = createState({
 console.log(parameters.value.ra)
 ```
 
+`state.value` から取得した値は読み取り専用です。
 
-### 値を変更する
+### 値を変更する — `state.update()`
 
 変更は必ず `state.update()` を使用します。
 
@@ -131,18 +140,22 @@ const theme = createState('auto')
 theme.update('dark')
 ```
 
-【注意】
-createStateで生成された値は、直接変更しようとするとエラーになります。  
-以下の操作はできません。値を変更する場合には、必ず `update` を使用します。
-```
+`state.value` に直接代入することはできません。
+
+```js
 theme.value = 'dark'
 ```
-これは、意図せずに監視対象の値を変更しないための意図な制限です。
 
+この操作はエラーになります。
 
-### オブジェクトや配列を変更する
+これは、state の変更が必ず `update()` を通るようにするための意図的な制限です。
 
-関数には、現在の state をコピーした変更可能な値が仮引数として渡されます。  
+### オブジェクト・配列を変更する — `state.update(callback)`
+
+オブジェクトや配列を変更するときは、`update()` に関数を渡します。
+
+関数には、現在の state をコピーした変更可能な値が仮引数として渡されます。
+
 仮引数名は任意です。以下では `draft` という名前を使っています。
 
 ```js
@@ -175,109 +188,11 @@ items.update(draft => {
 
 storage への保存と listener への通知は1回だけ行われます。
 
+callback 形式の `update()` はオブジェクトと配列にだけ使用できます。
 
-## 制約
-state.js では、state であることをコード上で明示し、意図しない直接代入や破壊的変更を防ぐため、値の扱いにいくつかの制約を設けています。
+プリミティブ値は新しい値を直接渡してください。
 
-### update の callback は値を返せない
-
-`update()` に関数を渡す場合、その関数は仮引数として渡された変更用のコピーを書き換えるためだけに使用します。値を return することはできません。
-
-正しい例:
-
-```js
-parameters.update(draft => {
-  draft.ra = 120
-})
-```
-
-この制約により、アロー関数の省略記法による意図しない戻り値もエラーになります。
-
-```js
-parameters.update(
-  draft => draft.ra = 120
-)
-```
-
-### state.value は読み取り専用
-
-state.value から取得できる値は読み取り専用です。
-
-プリミティブ値だけでなく、オブジェクトや配列、その内部にあるネストしたオブジェクトや配列も直接変更することはできません。
-
-```js
-parameters.value = {
-  ra: 120,
-  dec: 30
-}
-
-parameters.value.ra = 120
-
-items.value.push(item)
-```
-
-これらの操作はすべてエラーになります。
-
-```
-TypeError:
-Reactive state is read-only.
-Use state.update() to modify it.
-```
-
-state の変更は必ず update() を使用します。
-
-```js
-viewport.update(draft => {
-  draft.ra = 120
-})
-```
-
-```js
-
-items.update(draft => {
-  draft.push(item)
-})
-```
-
-### 保持できるのは JSON 値のみ
-
-state は、JSON として安全に保存・復元できるデータだけを扱います。ここでいう JSON 値とは、null、文字列、有限の数値、真偽値、およびそれらからなる配列・プレーンオブジェクトを指します。JSON 値だけに限定することで、実行可能なコードや特殊なオブジェクトを state に持ち込む余地を減らします。ただし、入力データのサニタイズや XSS 対策は行いません。
-
-利用可能な値:
-
-```js
-null
-'hello'
-42
-true
-
-[1, 2, 3]
-
-{
-  ra: 120,
-  dec: 30
-}
-```
-
-利用できない値:
-
-```js
-undefined
-NaN
-Infinity
-10n
-
-new Date()
-new Map()
-new Set()
-
-() => {}
-```
-
-循環参照、sparse array、Symbol property なども利用できません。配列は通常の Array のみ利用できます。Array を継承した独自クラスは利用できません。
-
-
-## 変更を監視する
+### 変更を監視する — `state.subscribe()`
 
 `subscribe()` に listener を登録します。
 
@@ -287,53 +202,73 @@ function render(value, previous) {
   console.log('old:', previous)
 }
 
-viewport.subscribe(render)
+parameters.subscribe(render)
 ```
 
-listener は state が更新されたときに呼び出されます。
+listener には、更新後の値と更新前の値が渡されます。
 
 ```js
 listener(currentValue, previousValue)
 ```
 
-`subscribe()` を呼んだ時点では実行されません。また、update() を呼んでも state の内容に変更がなければ listener は呼び出されません。
+`subscribe()` を呼んだ時点では listener は実行されません。
 
-【注意】listener の実行中に、同じ state に対して update() を呼び出すことはできません。通知中の再更新は listener ごとの通知順序を不定にするため、エラーになります。必要な変更は元の update() にまとめるか、別の state を更新してください。
+現在値が必要な場合は `state.value` から取得します。
 
-以下のような操作はできません。
+```js
+render(parameters.value)
+parameters.subscribe(render)
+```
+
+`update()` の結果が現在の state と同じ JSON 表現になる場合、state の更新と listener への通知は行われません。
+
+#### listener から同じ state を更新することはできません
+
+listener の実行中に、同じ state に対して `update()` を呼び出すことはできません。
+
 ```js
 stateA.subscribe(value => {
   stateA.update(...)
 })
-``` 
-以下のような操作は問題なく行えます。
+```
+
+この操作はエラーになります。
+
+通知中に同じ state を再度更新すると、listener ごとの通知順序が不明確になるためです。
+
+必要な変更は元の `update()` にまとめるか、別の state を更新してください。
+
+別の state の更新は問題なく行えます。
+
 ```js
 stateA.subscribe(value => {
   stateB.update(...)
 })
-``` 
-
-## 監視を解除する
-
-登録した listener を明示的に解除します。
-
-```js
-viewport.unsubscribe(render)
 ```
 
-登録時に使ったものと同じ関数を渡します。
+### 監視を解除する — `state.unsubscribe()`
+
+登録した listener を解除します。
+
+```js
+parameters.unsubscribe(render)
+```
+
+`subscribe()` に渡したものと同じ関数を指定します。
 
 ```js
 function render(value) {
   // ...
 }
 
-viewport.subscribe(render)
+parameters.subscribe(render)
 
 // later
 
-viewport.unsubscribe(render)
+parameters.unsubscribe(render)
 ```
+
+---
 
 ## Web Storage
 
@@ -375,9 +310,13 @@ const settings = createState(
 
 ### runtime state と storage
 
-実行中の正本はメモリ上の state です。storage への保存に失敗しても、runtime state 自体は更新されます。
+実行中の正本はメモリ上の state です。
 
-Web Storage は永続化のためだけに使用しています。Web Storageそのものの変更を監視しているわけではないので、タブやウィンドウを跨いだ通知は行いません。
+storage への保存に失敗しても、runtime state 自体は更新されます。
+
+Web Storage は永続化のためだけに使用します。Web Storage そのものの変更は監視しません。
+
+そのため、別のタブやウィンドウで同じ storage key が変更されても state.js には通知されません。
 
 ```text
 Web Storage
@@ -389,58 +328,9 @@ Web Storage
 Web Storage
 ```
 
-state.js は Web Storage から読み込んだ値について、JSONとして扱えることだけを確認します。アプリケーション固有のデータ構造やバージョンの検証、migration は行いません。保存形式を変更する場合は、settings:v2 のように storage key をバージョン化するなど、アプリケーション側で管理してください。
+### schema について
 
-
-## state.js でできないこと／やらないこと
-
-state.js は、小規模なWebページやUIで共有する状態を、できるだけ単純かつ安全に扱うためのライブラリです。
-
-状態管理ライブラリ全般が持つ機能を網羅することは目的としていません。
-
-### 派生 state や computed state は作りません
-
-複数の state から自動的に値を計算したり、依存関係を追跡したりする機能はありません。
-
-必要な処理は `subscribe()` の中で明示的に行います。
-
-複雑な依存関係を持つリアクティブな状態管理が必要な場合は、Nano Stores などの専用ライブラリを利用してください。
-
-### 大きな state や高頻度更新には向いていません
-
-state.js は更新時に state 全体をコピー・検証・シリアライズします。
-
-そのため、大量のデータを保持したり、アニメーションのように高頻度で state を更新したりする用途には向いていません。
-
-変更箇所だけを共有する構造的共有や、参照比較を利用した差分更新も行いません。
-
-### listener から同じ state を更新できません
-
-listener の実行中に、同じ state に対して `update()` を呼び出すことはできません。
-
-```js
-state.subscribe(() => {
-  state.update(...)
-})
-```
-
-この操作はエラーになります。
-
-通知中に同じ state を再度変更すると listener ごとの通知順序が不明確になるため、state.js では明示的に禁止しています。
-
-必要な変更は元の `update()` にまとめるか、別の state を更新してください。
-
-### Web Storage の同期は行いません
-
-`localStorage` や `sessionStorage` は state の保存と復元にのみ使用します。
-
-Web Storage 自体の変更は監視しないため、別のタブやウィンドウで同じ storage key が変更されても state.js には通知されません。
-
-複数のブラウジングコンテキスト間で状態を同期する機能はありません。
-
-### 保存データの schema 管理は行いません
-
-Web Storage から読み込んだ値について、state.js が確認するのは JSON として扱えるデータであることだけです。
+state.js は Web Storage から読み込んだ値について、JSON として扱えることだけを確認します。
 
 アプリケーション固有のデータ構造、必須項目、バージョンの検証や migration は行いません。
 
@@ -452,11 +342,169 @@ key: 'settings:v2'
 
 のように storage key をバージョン化するなど、アプリケーション側で管理してください。
 
-### 非同期処理やデータ取得は行いません
+---
 
-state.js は fetch、非同期処理、キャッシュ、ローディング状態、エラー状態などを特別には扱いません。
+## 制約
 
-必要であれば、それらを通常の state として表現します。
+state.js では、state であることをコード上で明示し、意図しない直接代入や破壊的変更を防ぐため、値の扱いにいくつかの制約を設けています。
+
+### update の callback は値を返せない
+
+`update()` に関数を渡す場合、その関数は仮引数として渡された変更用のコピーを書き換えるためだけに使用します。
+
+値を `return` することはできません。
+
+正しい例:
+
+```js
+parameters.update(draft => {
+  draft.ra = 120
+})
+```
+
+アロー関数の省略記法によって意図せず値を返した場合もエラーになります。
+
+```js
+parameters.update(
+  draft => draft.ra = 120
+)
+```
+
+配列メソッドにも注意してください。
+
+```js
+items.update(
+  draft => draft.push(item)
+)
+```
+
+`push()` は値を返すため、このコードもエラーになります。
+
+波括弧を使用してください。
+
+```js
+items.update(draft => {
+  draft.push(item)
+})
+```
+
+### state.value は読み取り専用
+
+`state.value` から取得できる値は読み取り専用です。
+
+プリミティブ値だけでなく、オブジェクトや配列、その内部にあるネストしたオブジェクトや配列も直接変更することはできません。
+
+```js
+parameters.value = {
+  ra: 120,
+  dec: 30
+}
+
+parameters.value.ra = 120
+
+items.value.push(item)
+```
+
+これらの操作はすべてエラーになります。
+
+```text
+TypeError:
+Reactive state is read-only.
+Use state.update() to modify it.
+```
+
+state の変更は必ず `update()` を使用します。
+
+```js
+parameters.update(draft => {
+  draft.ra = 120
+})
+
+items.update(draft => {
+  draft.push(item)
+})
+```
+
+### 保持できるのは JSON 値のみ
+
+state は、JSON として安全に保存・復元できるデータだけを扱います。
+
+ここでいう JSON 値とは、
+
+- `null`
+- 文字列
+- 有限の数値
+- 真偽値
+- それらからなる通常の配列
+- それらからなるプレーンオブジェクト
+
+を指します。
+
+JSON 値だけに限定することで、実行可能なコードや特殊なオブジェクトを state に持ち込む余地を減らします。
+
+ただし、入力データのサニタイズや XSS 対策を行うものではありません。
+
+利用可能な値:
+
+```js
+null
+'hello'
+42
+true
+
+[1, 2, 3]
+
+{
+  ra: 120,
+  dec: 30
+}
+```
+
+利用できない値:
+
+```js
+undefined
+NaN
+Infinity
+10n
+
+new Date()
+new Map()
+new Set()
+
+() => {}
+```
+
+循環参照、sparse array、Symbol property、getter / setter、non-enumerable property なども利用できません。
+
+配列は通常の `Array` のみ利用できます。`Array` を継承した独自クラスは利用できません。
+
+---
+
+## state.js がやらないこと
+
+state.js は、小規模なWebページやUIで共有する状態を、単純かつ安全に扱うためのライブラリです。機能をしぼり、あえて制約を設けることで、コードが複雑化することを防ぎ、メンテナンス性を維持することを意図しています。より多くの機能が必要になった場合は、その用途に適した状態管理ライブラリやフレームワークへ移行することを検討してください。
+
+
+### computed state / dependency tracking
+
+複数の state から値を自動的に計算する computed state や、state 間の依存関係を自動的に追跡する機能はありません。
+
+必要な処理は `subscribe()` などを使って明示的に記述します。
+
+### 大規模・高頻度な state
+
+state.js は更新時に state 全体をコピー・検証・シリアライズします。
+
+そのため、大量のデータを保持したり、アニメーションのように高頻度で更新したりする用途には向いていません。
+
+変更部分だけを共有する構造的共有や、参照比較を利用した差分更新も行いません。
+
+### async / data fetching の抽象化
+
+fetch、キャッシュ、ローディング状態、エラー状態などを特別に扱う機能はありません。
+
+必要な場合は、それらを通常の state として表現します。
 
 ```js
 const data = createState({
@@ -466,7 +514,7 @@ const data = createState({
 })
 ```
 
-### フレームワークではありません
+### DOM / framework 機能
 
 ルーティング、DOM更新、フォームバインディング、ライフサイクル管理などは行いません。
 
@@ -479,60 +527,61 @@ state.js が行うのは、
 
 ことだけです。
 
-より多くの機能が必要になった場合は、state.js を拡張するより、その用途に適した状態管理ライブラリやフレームワークへ移行することを想定しています。
+---
 
 ## Sample
 
 ### フォームの内容が変更されたら、UIに即座に反映させる
-フォームの更新とUIの間にstateを挟むことで、入力と出力を疎結合にすることができます。
+
+フォームの更新とUIの間に state を挟むことで、入力と出力を疎結合にできます。
 
 ```js
-// createState()でパラメータを初期化。
 const parameters = createState({
   mass: 10,
   velocity: 20,
   angle: 45
 })
 
-// フォーム要素は、計算内容や表示には触らずにデータを更新するだけ
+// フォーム要素は state を更新するだけ
 massInput.addEventListener('input', event => {
-  parameters.update(value => {
-    value.mass = Number(event.target.value)
+  parameters.update(draft => {
+    draft.mass = Number(event.target.value)
   })
 })
 
 velocityInput.addEventListener('input', event => {
-  parameters.update(value => {
-    value.velocity = Number(event.target.value)
+  parameters.update(draft => {
+    draft.velocity = Number(event.target.value)
   })
 })
 
 angleInput.addEventListener('input', event => {
-  parameters.update(value => {
-    value.angle = Number(event.target.value)
+  parameters.update(draft => {
+    draft.angle = Number(event.target.value)
   })
 })
 
-
-// subscribeでデータの更新を検知して、計算や表示を行う。
+// 計算や表示は state の変更を監視する
 parameters.subscribe(value => {
   const result = calculate(value)
   renderResult(result)
 })
 
-//後からグラフを描きたくなっても、subscribeを追加するだけ。
+// 後から表示処理を追加しても、入力側を変更する必要はない
 parameters.subscribe(value => {
   updateChart(value)
 })
-
 ```
 
+入力側は計算や表示の内容を知る必要がありません。
 
-### アンケートやメールフォームなどの空欄チェックや分岐を制御する
-ユーザーの入力値によってフォームの内容そのものを変化させたい場合などでも、フォーム要素のイベントとUIの制御を切り離すことができます。
+出力側も、どのフォーム要素が変更されたかを知る必要はありません。
+
+### アンケートやメールフォームの入力チェック・分岐を制御する
+
+ユーザーの入力値によってフォームの内容を変化させたい場合も、フォーム要素のイベントとUI制御を切り離せます。
 
 ```js
-// createState()でパラメータを初期化。
 const answers = createState({
   age: null,
   hasCar: null,
@@ -540,36 +589,25 @@ const answers = createState({
   email: ''
 })
 
-// フォーム要素は、計算内容や表示には触らずにデータを更新するだけ。
-ageInput.addEventListener('input', e => {
-  answers.update(value => {
-    value.age = Number(e.target.value)
+// 入力側は state を更新するだけ
+ageInput.addEventListener('input', event => {
+  answers.update(draft => {
+    draft.age = Number(event.target.value)
   })
 })
 
-hasCarInput.addEventListener('change', e => {
-  answers.update(value => {
-    value.hasCar = e.target.value === 'yes'
+hasCarInput.addEventListener('change', event => {
+  answers.update(draft => {
+    draft.hasCar = event.target.value === 'yes'
   })
 })
 
-// subscribeでデータ更新のタイミングで処理を走らせる
-// 空欄をチェックする
-answers.subscribe(value => {
-  const complete =
-    value.age !== null &&
-    value.hasCar !== null &&
-    value.email !== ''
-
-  submitButton.disabled = !complete
-})
-
-//車を持っていなかったら、車のセクションを隠す
+// 入力内容によってUIを切り替える
 answers.subscribe(value => {
   carSection.hidden = value.hasCar !== true
 })
 
-//車を持っている人だけ、carTypeを必須にする
+// 現在のstateだけを見て入力完了を判定する
 answers.subscribe(value => {
   const complete =
     value.age !== null &&
@@ -582,11 +620,11 @@ answers.subscribe(value => {
 
   submitButton.disabled = !complete
 })
-
 ```
 
-### コンポーネント間で値を共有する。
-同じページ・JavaScript実行環境内で、共有モジュールから export した state を import することで、複数のコンポーネントから同じ state を参照できます。
+### コンポーネント間で値を共有する
+
+同じページ・同じ JavaScript 実行環境内で、共有モジュールから export した state を import することで、複数のコンポーネントから同じ state を参照できます。
 
 ```js
 // app-state.js
@@ -599,22 +637,38 @@ export const appState = createState({
 ```
 
 Component A:
+
 ```js
 import { appState } from './app-state.js'
-appState.update(state => {
-  state.status = 'ready'
+
+appState.update(draft => {
+  draft.status = 'ready'
 })
 ```
 
 Component B:
+
 ```js
 import { appState } from './app-state.js'
+
 console.log(appState.value.status)
 ```
 
 Component C:
+
 ```js
 import { appState } from './app-state.js'
-render(appState.value); // subscribeしただけでは実行されないので、初期状態を表示するために最初に実行する必要があります。
+
+function render(value) {
+  // ...
+}
+
+// subscribe() は登録時には呼ばれないので初期値を先に描画する
+render(appState.value)
+
 appState.subscribe(render)
 ```
+
+共有されるのは同じ JavaScript 実行環境内の state です。
+
+別タブ、iframe、Web Worker などの異なる実行環境との状態同期は state.js の役割には含みません。
