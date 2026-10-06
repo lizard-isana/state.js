@@ -253,7 +253,9 @@ stateB listener
 stateA update  ← エラー
 ```
 
-listener 内で発生した例外は state.js が捕捉して console に出力し、他の listener の通知は継続します。そのため、listener 内で禁止された `update()` を呼び出した場合も、その `TypeError` は元の `update()` の呼び出し元には伝播しません。
+listener の呼び出し時に同期的に投げられた例外は、state.js が捕捉して console に出力し、他の listener の通知は継続します。そのため、同期的に実行される listener 内で禁止された `update()` を呼び出した場合も、その `TypeError` は元の `update()` の呼び出し元には伝播しません。
+
+ただし、`async` 関数や Promise による非同期処理のエラーは捕捉しません。非同期処理を行う場合は、listener 内の `try / catch` や Promise の `.catch()` を使って、アプリケーション側でエラーを処理してください。
 
 ### 監視を解除する — `state.unsubscribe()`
 
