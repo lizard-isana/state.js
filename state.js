@@ -1,10 +1,36 @@
 /*! state.js | MIT License | Copyright (c) 2026 Isana Kashiwai */
 
-function isJSONValue(value, stack = new WeakSet()) {
+const MAX_DEPTH = 16
+const MAX_VALUES = 4096
+const MAX_JSON_LENGTH = 65536
+
+function checkJSONLength(length) {
+  if (length > MAX_JSON_LENGTH) {
+    throw new RangeError(
+      `State JSON must not exceed ${MAX_JSON_LENGTH} UTF-16 code units`
+    )
+  }
+}
+
+function isJSONValue(
+  value,
+  stack = new WeakSet(),
+  budget = { values: 0, length: 0 },
+  depth = 0
+) {
+  // 共有参照も出現するたびに数え、JSON 展開後の処理量を制限する
+  if (++budget.values > MAX_VALUES) {
+    throw new RangeError(`State must not exceed ${MAX_VALUES} values`)
+  }
+
   if (value === null) return true
 
   switch (typeof value) {
     case 'string':
+      budget.length += value.length
+      checkJSONLength(budget.length)
+      return true
+
     case 'boolean':
       return true
 
@@ -22,6 +48,11 @@ function isJSONValue(value, stack = new WeakSet()) {
     return false
   }
 
+  // オブジェクト・配列だけを階層として数える。ルートは1階層。
+  if (depth >= MAX_DEPTH) {
+    throw new RangeError(`State must not exceed ${MAX_DEPTH} object/array levels`)
+  }
+
   stack.add(value)
 
   try {
@@ -29,6 +60,10 @@ function isJSONValue(value, stack = new WeakSet()) {
       // 通常の Array のみ許可
       if (Object.getPrototypeOf(value) !== Array.prototype) {
         return false
+      }
+
+      if (value.length > MAX_VALUES - budget.values) {
+        throw new RangeError(`State must not exceed ${MAX_VALUES} values`)
       }
 
       if (Object.getOwnPropertySymbols(value).length > 0) {
@@ -50,7 +85,7 @@ function isJSONValue(value, stack = new WeakSet()) {
           !descriptor ||
           !descriptor.enumerable ||
           !('value' in descriptor) ||
-          !isJSONValue(descriptor.value, stack)
+          !isJSONValue(descriptor.value, stack, budget, depth + 1)
         ) {
           return false
         }
@@ -70,7 +105,14 @@ function isJSONValue(value, stack = new WeakSet()) {
 
     const names = Object.getOwnPropertyNames(value)
 
+    if (names.length > MAX_VALUES - budget.values) {
+      throw new RangeError(`State must not exceed ${MAX_VALUES} values`)
+    }
+
     for (const key of names) {
+      budget.length += key.length
+      checkJSONLength(budget.length)
+
       const descriptor =
         Object.getOwnPropertyDescriptor(value, key)
 
@@ -79,7 +121,7 @@ function isJSONValue(value, stack = new WeakSet()) {
         !descriptor ||
         !descriptor.enumerable ||
         !('value' in descriptor) ||
-        !isJSONValue(descriptor.value, stack)
+        !isJSONValue(descriptor.value, stack, budget, depth + 1)
       ) {
         return false
       }
@@ -91,8 +133,14 @@ function isJSONValue(value, stack = new WeakSet()) {
   }
 }
 
+function stringifyJSON(value) {
+  const json = JSON.stringify(value)
+  checkJSONLength(json.length)
+  return json
+}
+
 function cloneJSON(value) {
-  return JSON.parse(JSON.stringify(value))
+  return JSON.parse(stringifyJSON(value))
 }
 
 function failMutation() {
@@ -173,16 +221,20 @@ export function createState(initialValue, options = {}) {
     )
   }
 
+  const initialJson = stringifyJSON(initialValue)
+
   function load() {
     if (storage) {
       try {
         const saved = storage.getItem(key)
 
         if (saved !== null) {
+          // 解析前に入力長を制限し、解析後に構造と正規化した長さを検証する
+          checkJSONLength(saved.length)
           const parsed = JSON.parse(saved)
 
           if (isJSONValue(parsed)) {
-            return parsed
+            return { value: parsed, json: stringifyJSON(parsed) }
           }
         }
       } catch {
@@ -190,11 +242,10 @@ export function createState(initialValue, options = {}) {
       }
     }
 
-    return cloneJSON(initialValue)
+    return { value: JSON.parse(initialJson), json: initialJson }
   }
 
-  let currentValue = load()
-  let currentJson = JSON.stringify(currentValue)
+  let { value: currentValue, json: currentJson } = load()
   let readonlyCache = new WeakMap()
   let locked = false
 
@@ -207,7 +258,7 @@ export function createState(initialValue, options = {}) {
       )
     }
 
-    const nextJson = JSON.stringify(next)
+    const nextJson = stringifyJSON(next)
 
     // JSONとして文字列化した結果が同一なら何もしない
     if (currentJson === nextJson) {

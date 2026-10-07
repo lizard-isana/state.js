@@ -1,0 +1,299 @@
+{
+  "environment": {
+    "node": "v24.14.1",
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M5"
+  },
+  "method": "9 rounds; median microseconds per operation; alternating order for paired comparisons; in-memory storage",
+  "results": [
+    {
+      "file": "state.js",
+      "case": "primitive update",
+      "iterations": 200000,
+      "before": {
+        "sha256": "3c8bd75441959b8d261a93f85b03d9c4fb27a3822ed95cdf5fb4eaa76dab0530",
+        "medianUs": 0.06324478999999997,
+        "minUs": 0.06246333000000007,
+        "maxUs": 0.0638924999999999
+      },
+      "current": {
+        "sha256": "decea4ffab62da957d41d642ee168130f038f65e06fcc6f573cdbbc0f776420f",
+        "medianUs": 0.06424500000000002,
+        "minUs": 0.063953335,
+        "maxUs": 0.06496104500000001
+      },
+      "changePercent": 1.5814899535599114
+    },
+    {
+      "file": "state.js",
+      "case": "small draft update",
+      "iterations": 15000,
+      "before": {
+        "sha256": "3c8bd75441959b8d261a93f85b03d9c4fb27a3822ed95cdf5fb4eaa76dab0530",
+        "medianUs": 0.8900000000000015,
+        "minUs": 0.8862166666666667,
+        "maxUs": 0.9008194666666668
+      },
+      "current": {
+        "sha256": "decea4ffab62da957d41d642ee168130f038f65e06fcc6f573cdbbc0f776420f",
+        "medianUs": 0.9042721999999989,
+        "minUs": 0.8952611333333341,
+        "maxUs": 0.9131888666666669
+      },
+      "changePercent": 1.6036179775277937
+    },
+    {
+      "file": "state.js",
+      "case": "4096-value draft update",
+      "iterations": 120,
+      "before": {
+        "sha256": "3c8bd75441959b8d261a93f85b03d9c4fb27a3822ed95cdf5fb4eaa76dab0530",
+        "medianUs": 288.21701666666684,
+        "minUs": 281.7298583333335,
+        "maxUs": 297.2604166666666
+      },
+      "current": {
+        "sha256": "decea4ffab62da957d41d642ee168130f038f65e06fcc6f573cdbbc0f776420f",
+        "medianUs": 290.8468749999998,
+        "minUs": 289.56596666666695,
+        "maxUs": 302.79548333333344
+      },
+      "changePercent": 0.9124576903016379
+    },
+    {
+      "file": "state.js",
+      "case": "65536-unit draft update",
+      "iterations": 200,
+      "before": {
+        "sha256": "3c8bd75441959b8d261a93f85b03d9c4fb27a3822ed95cdf5fb4eaa76dab0530",
+        "medianUs": 69.27729,
+        "minUs": 68.83771000000024,
+        "maxUs": 72.18646000000035
+      },
+      "current": {
+        "sha256": "decea4ffab62da957d41d642ee168130f038f65e06fcc6f573cdbbc0f776420f",
+        "medianUs": 69.3935399999998,
+        "minUs": 68.96062499999971,
+        "maxUs": 76.97791499999994
+      },
+      "changePercent": 0.16780390803365908
+    },
+    {
+      "file": "state.js",
+      "case": "16-level draft update",
+      "iterations": 3000,
+      "before": {
+        "sha256": "3c8bd75441959b8d261a93f85b03d9c4fb27a3822ed95cdf5fb4eaa76dab0530",
+        "medianUs": 4.096805666666644,
+        "minUs": 4.073291666666667,
+        "maxUs": 4.206708333333306
+      },
+      "current": {
+        "sha256": "decea4ffab62da957d41d642ee168130f038f65e06fcc6f573cdbbc0f776420f",
+        "medianUs": 4.147527666666671,
+        "minUs": 4.110083333333326,
+        "maxUs": 4.201763666666693
+      },
+      "changePercent": 1.238086551498463
+    },
+    {
+      "file": "state.js",
+      "case": "small no-op update",
+      "iterations": 30000,
+      "before": {
+        "sha256": "3c8bd75441959b8d261a93f85b03d9c4fb27a3822ed95cdf5fb4eaa76dab0530",
+        "medianUs": 0.2699680333333314,
+        "minUs": 0.26738469999999476,
+        "maxUs": 0.272808333333334
+      },
+      "current": {
+        "sha256": "decea4ffab62da957d41d642ee168130f038f65e06fcc6f573cdbbc0f776420f",
+        "medianUs": 0.28978196666666917,
+        "minUs": 0.2839708333333268,
+        "maxUs": 0.2937333333333375
+      },
+      "changePercent": 7.339362771470559
+    },
+    {
+      "file": "state.js",
+      "case": "small create",
+      "iterations": 15000,
+      "before": {
+        "sha256": "3c8bd75441959b8d261a93f85b03d9c4fb27a3822ed95cdf5fb4eaa76dab0530",
+        "medianUs": 0.9545556000000033,
+        "minUs": 0.7287416666666711,
+        "maxUs": 1.0262249999999766
+      },
+      "current": {
+        "sha256": "decea4ffab62da957d41d642ee168130f038f65e06fcc6f573cdbbc0f776420f",
+        "medianUs": 0.8502194666666583,
+        "minUs": 0.6292833333333268,
+        "maxUs": 0.9846389333333263
+      },
+      "changePercent": -10.93033588963751
+    },
+    {
+      "file": "state.js",
+      "case": "65536-unit storage load",
+      "iterations": 400,
+      "before": {
+        "sha256": "3c8bd75441959b8d261a93f85b03d9c4fb27a3822ed95cdf5fb4eaa76dab0530",
+        "medianUs": 41.713230000000294,
+        "minUs": 41.09000000000037,
+        "maxUs": 44.41302250000035
+      },
+      "current": {
+        "sha256": "decea4ffab62da957d41d642ee168130f038f65e06fcc6f573cdbbc0f776420f",
+        "medianUs": 43.238022499999715,
+        "minUs": 41.334790000000794,
+        "maxUs": 44.5345825000004
+      },
+      "changePercent": 3.655416998394534
+    },
+    {
+      "file": "state.min.js",
+      "case": "primitive update",
+      "iterations": 200000,
+      "before": {
+        "sha256": "8d52fc5f5c5f457d52c6574ea1454e32ff5af1cc7da86edce3077c67f8407662",
+        "medianUs": 0.06466791499999999,
+        "minUs": 0.061612915000000615,
+        "maxUs": 0.06592562499999985
+      },
+      "current": {
+        "sha256": "9dcfaead41f7f472b50eff879380167aa94fe28f0ad475e11d71c720c358071e",
+        "medianUs": 0.06693812499999922,
+        "minUs": 0.06489978999999949,
+        "maxUs": 0.06736229000000094
+      },
+      "changePercent": 3.510566252212133
+    },
+    {
+      "file": "state.min.js",
+      "case": "small draft update",
+      "iterations": 15000,
+      "before": {
+        "sha256": "8d52fc5f5c5f457d52c6574ea1454e32ff5af1cc7da86edce3077c67f8407662",
+        "medianUs": 0.9119055333333563,
+        "minUs": 0.8990139333333294,
+        "maxUs": 0.9209778000000066
+      },
+      "current": {
+        "sha256": "9dcfaead41f7f472b50eff879380167aa94fe28f0ad475e11d71c720c358071e",
+        "medianUs": 0.9193166666666609,
+        "minUs": 0.9079944666666658,
+        "maxUs": 0.928125
+      },
+      "changePercent": 0.8127084508648741
+    },
+    {
+      "file": "state.min.js",
+      "case": "4096-value draft update",
+      "iterations": 120,
+      "before": {
+        "sha256": "8d52fc5f5c5f457d52c6574ea1454e32ff5af1cc7da86edce3077c67f8407662",
+        "medianUs": 285.28333333333273,
+        "minUs": 282.8746583333328,
+        "maxUs": 287.4079833333326
+      },
+      "current": {
+        "sha256": "9dcfaead41f7f472b50eff879380167aa94fe28f0ad475e11d71c720c358071e",
+        "medianUs": 291.39201666666474,
+        "minUs": 290.63576666666603,
+        "maxUs": 292.27326666666613
+      },
+      "changePercent": 2.1412689139447494
+    },
+    {
+      "file": "state.min.js",
+      "case": "65536-unit draft update",
+      "iterations": 200,
+      "before": {
+        "sha256": "8d52fc5f5c5f457d52c6574ea1454e32ff5af1cc7da86edce3077c67f8407662",
+        "medianUs": 69.45500000000038,
+        "minUs": 69.01354000000083,
+        "maxUs": 70.07270999999946
+      },
+      "current": {
+        "sha256": "9dcfaead41f7f472b50eff879380167aa94fe28f0ad475e11d71c720c358071e",
+        "medianUs": 69.43166999999903,
+        "minUs": 68.85978999999907,
+        "maxUs": 70.04479500000116
+      },
+      "changePercent": -0.03359009430761173
+    },
+    {
+      "file": "state.min.js",
+      "case": "16-level draft update",
+      "iterations": 3000,
+      "before": {
+        "sha256": "8d52fc5f5c5f457d52c6574ea1454e32ff5af1cc7da86edce3077c67f8407662",
+        "medianUs": 4.101097333333503,
+        "minUs": 4.076333333333423,
+        "maxUs": 4.177583333333132
+      },
+      "current": {
+        "sha256": "9dcfaead41f7f472b50eff879380167aa94fe28f0ad475e11d71c720c358071e",
+        "medianUs": 4.151569333333403,
+        "minUs": 4.133333333333212,
+        "maxUs": 4.2217500000000046
+      },
+      "changePercent": 1.2306950042288989
+    },
+    {
+      "file": "state.min.js",
+      "case": "small no-op update",
+      "iterations": 30000,
+      "before": {
+        "sha256": "8d52fc5f5c5f457d52c6574ea1454e32ff5af1cc7da86edce3077c67f8407662",
+        "medianUs": 0.2693083333333258,
+        "minUs": 0.26771806666665726,
+        "maxUs": 0.2735805666666541
+      },
+      "current": {
+        "sha256": "9dcfaead41f7f472b50eff879380167aa94fe28f0ad475e11d71c720c358071e",
+        "medianUs": 0.2840930333333442,
+        "minUs": 0.27983886666667485,
+        "maxUs": 0.2874180333333243
+      },
+      "changePercent": 5.489878392184466
+    },
+    {
+      "file": "state.min.js",
+      "case": "small create",
+      "iterations": 15000,
+      "before": {
+        "sha256": "8d52fc5f5c5f457d52c6574ea1454e32ff5af1cc7da86edce3077c67f8407662",
+        "medianUs": 0.9466388666666413,
+        "minUs": 0.7231250000000121,
+        "maxUs": 1.0177944666666614
+      },
+      "current": {
+        "sha256": "9dcfaead41f7f472b50eff879380167aa94fe28f0ad475e11d71c720c358071e",
+        "medianUs": 0.8278833333333144,
+        "minUs": 0.6271499999999529,
+        "maxUs": 0.8500778000000234
+      },
+      "changePercent": -12.544966989523221
+    },
+    {
+      "file": "state.min.js",
+      "case": "65536-unit storage load",
+      "iterations": 400,
+      "before": {
+        "sha256": "8d52fc5f5c5f457d52c6574ea1454e32ff5af1cc7da86edce3077c67f8407662",
+        "medianUs": 42.37823000000162,
+        "minUs": 41.091772499999024,
+        "maxUs": 43.59729000000016
+      },
+      "current": {
+        "sha256": "9dcfaead41f7f472b50eff879380167aa94fe28f0ad475e11d71c720c358071e",
+        "medianUs": 41.96312499999976,
+        "minUs": 41.28854250000131,
+        "maxUs": 43.803437500000655
+      },
+      "changePercent": -0.979524156629108
+    }
+  ]
+}
